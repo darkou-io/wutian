@@ -37,18 +37,18 @@ class TestStrategy(bt.Strategy):
 
     def __init__(self):
         # Keep a reference to the "close" line in the data[0] dataseries
-        # self.sma = bt.indicators.MovingAverageSimple(
+        # self.sma = bt.indicators.SimpleMovingAverage(
         #     self.datas[0], period=self.params.ma_period)
         self.dataclose = self.datas[0].close
         self.order = None
         self.order = None
         self.buyprice = None
         self.buycomm = None
-        bt.indicators.ExponentialMovingAverage(self.datas[0], period=25)
+        bt.indicators.ExponentialMovingAverage(self.datas[0], period=15)
         self.sma = bt.indicators.StochasticSlow(self.datas[0])
         # bt.indicators.WeightedMovingAverage(
         #     self.datas[0], period=25, subplot=True)
-        bt.indicators.MACDHisto(self.datas[0])
+        self.macd = bt.indicators.MACDHisto(self.datas[0])
         # rsi = bt.indicators.RSI(self.datas[0])
         # bt.indicators.SmoothedMovingAverage(rsi, period=10)
         # bt.indicators.ATR(self.datas[0], plot=True)
@@ -99,10 +99,13 @@ class TestStrategy(bt.Strategy):
             return
 
         # Check if we are in the market
+        positive = self.macd.macd[0]
+        negative = self.macd.signal[0]
+        # perc_k = self.sma.percK[0]
+        # perc_d = self.sma.percD[0]
         if not self.position:
-
             # Not yet ... we MIGHT BUY if ...
-            if self.dataclose[0] > self.sma[0]:
+            if positive > negative:
                 # BUY, BUY, BUY!!! (with all possible default parameters)
                 self.log('BUY CREATE, %.2f' % self.dataclose[0])
 
@@ -111,7 +114,7 @@ class TestStrategy(bt.Strategy):
 
         else:
 
-            if self.dataclose[0] < self.sma[0]:
+            if positive <= negative:
                 # SELL, SELL, SELL!!! (with all possible default parameters)
                 self.log('SELL CREATE, %.2f' % self.dataclose[0])
 
@@ -144,7 +147,7 @@ def get_data_source(ts_code):
     df = client.query(
         'daily',
         ts_code=ts_code,
-        start_date='20200119',
+        start_date='20190119',
         end_date=get_today())
     print(df.columns)
     df = align_data_for_backtrader(df)
@@ -162,12 +165,19 @@ def analyse_target(ts_code):
         ma_period=20)
     bt.feeds.PandasDirectData()
     cerebro.adddata(data)
-    cerebro.broker.setcash(100000.0)
+    start_cash = 100000.0
+    cerebro.broker.setcash(start_cash)
     cerebro.addsizer(bt.sizers.FixedSize, stake=10)
     cerebro.broker.setcommission(commission=0.0016)
-    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
+    print('Starting Portfolio Value: {}'.format(start_cash))
 
-    cerebro.run(maxcpus=1)
+    cerebro.run(stdstats=True, maxcpus=1)
+    profit = cerebro.broker.getvalue()-start_cash
+    if profit > 0:
+        print('一顿操作猛如虎，最终赚了 {}'.format(profit))
+    else:
+        print('一顿操作猛如虎，竟然亏了 {}'.format(profit))
+
     plot = Plot(title='{}({})'.format(company['name'], ts_code))
     cerebro.plot(plotter=plot, iplot=False)
 
