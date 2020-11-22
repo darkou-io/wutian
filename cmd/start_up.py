@@ -123,7 +123,7 @@ class TestStrategy(bt.Strategy):
 
     def stop(self):
         self.log('(MA Period %2d) Ending Value %.2f' %
-                 (self.params.ma_period, self.broker.getvalue()), do_print=True)
+                 (self.params.ma_period, self.broker.get_value()), do_print=True)
 
 
 def align_data_for_backtrader(df):
@@ -147,6 +147,7 @@ def get_data_source(ts_code):
     df = client.query(
         'daily',
         ts_code=ts_code,
+        adj='qfq',
         start_date='20190119',
         end_date=get_today())
     print(df.columns)
@@ -160,19 +161,19 @@ def analyse_target(ts_code):
     company = all_company[ts_code]
     data = bt.feeds.PandasDirectData(dataname=get_data_source(ts_code))
     cerebro = bt.Cerebro()
-    cerebro.addstrategy(
+    cerebro.add_strategy(
         TestStrategy,
         ma_period=20)
     bt.feeds.PandasDirectData()
-    cerebro.adddata(data)
+    cerebro.add_data(data)
     start_cash = 100000.0
-    cerebro.broker.setcash(start_cash)
-    cerebro.addsizer(bt.sizers.FixedSize, stake=10)
-    cerebro.broker.setcommission(commission=0.0016)
+    cerebro.broker.set_cash(start_cash)
+    cerebro.add_sizer(bt.sizers.FixedSize, stake=10)
+    cerebro.broker.set_commission(commission=0.0016)
     print('Starting Portfolio Value: {}'.format(start_cash))
 
     cerebro.run(stdstats=True, maxcpus=1)
-    profit = cerebro.broker.getvalue()-start_cash
+    profit = cerebro.broker.get_value()-start_cash
     if profit > 0:
         print('一顿操作猛如虎，最终赚了 {}'.format(profit))
     else:
