@@ -61,7 +61,7 @@ class TestStrategy(bt.Strategy):
         # Check if an order has been completed
         # Attention: broker could reject order if not enough cash
         if order.status in [order.Completed]:
-            if order.isbuy():
+            if order.is_buy():
                 self.log(
                     'BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
                     (order.executed.price,
@@ -172,6 +172,7 @@ def analyse_target(ts_code):
     cerebro.broker.set_commission(commission=0.0016)
     print('Starting Portfolio Value: {}'.format(start_cash))
 
+    # cerebro.add_writer(bt.WriterFile, csv=True, out='{}.csv'.format(ts_code), rounding=2)
     cerebro.run(stdstats=True, maxcpus=1)
     profit = cerebro.broker.get_value()-start_cash
     if profit > 0:
